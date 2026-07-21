@@ -79,6 +79,13 @@ find "$directory" -type f -name "*.swift" | while read -r file; do
     continue
   fi
 
+  # Skip files that already carry a third-party (upstream fork) copyright — preserving
+  # the original author's MIT notice is required by the license. Do not rewrite these.
+  if head -n 25 "$file" | grep -qi "Sundell"; then
+    echo "Skipping $file (preserving upstream copyright header)."
+    continue
+  fi
+
   # Create the header with the current filename
   filename=$(basename "$file")
   header=$(printf "$header_template" "$filename" "$package" "$creator" "$year" "$company")
