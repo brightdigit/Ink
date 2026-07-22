@@ -1,13 +1,7 @@
 /**
 *  Ink
-*  Copyright (c) John Sundell 2019
+*  Copyright (c) John Sundell 2020
 *  MIT license, see LICENSE file for details
-*
-*  #40: Ink's leading `---` front-matter block is not part of CommonMark, so
-*  swift-markdown does not parse it. This retained pre-pass strips and decodes the
-*  front matter (line-based, replacing the old `Reader` implementation) before the
-*  body is handed to swift-markdown. `.metadataKeys`/`.metadataValues` modifiers are
-*  applied here exactly as before.
 */
 
 internal struct Metadata {

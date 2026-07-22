@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Sundell-fork variant of Scripts/header.sh.
+#
+# Same skeleton as the standard BrightDigit header.sh (arg parsing, find loop,
+# Generated/ + swift-format-ignore skips, idempotent prepend) — the only
+# difference is the header TEXT: this emits John Sundell's compact `/** */`
+# block instead of the BrightDigit MIT block, so his attribution is preserved.
+#
+# Used ONLY by the three Sundell forks (Plot / Files / Ink). Invoke with the
+# original author as creator and each repo's latest copyright year, e.g.:
+#   ./Scripts/header.sh -d Sources -c "John Sundell" -o "John Sundell" -p "Plot"  -y 2021
+#   ./Scripts/header.sh -d Sources -c "John Sundell" -o "John Sundell" -p "Ink"   -y 2020
+#   ./Scripts/header.sh -d Sources -c "John Sundell" -o "John Sundell" -p "Files" -y 2019
+
 # Function to print usage
 usage() {
   echo "Usage: $0 -d directory -c creator -o company -p package [-y year]"
@@ -34,35 +47,13 @@ if [ -z "$directory" ] || [ -z "$creator" ] || [ -z "$company" ] || [ -z "$packa
   usage
 fi
 
-# Define the header template
-header_template="//
-//  %s
-//  %s
-//
-//  Created by %s.
-//  Copyright © %s %s.
-//
-//  Permission is hereby granted, free of charge, to any person
-//  obtaining a copy of this software and associated documentation
-//  files (the \"Software\"), to deal in the Software without
-//  restriction, including without limitation the rights to use,
-//  copy, modify, merge, publish, distribute, sublicense, and/or
-//  sell copies of the Software, and to permit persons to whom the
-//  Software is furnished to do so, subject to the following
-//  conditions:
-//
-//  The above copyright notice and this permission notice shall be
-//  included in all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,
-//  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-//  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-//  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-//  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-//  OTHER DEALINGS IN THE SOFTWARE.
-//"
+# Define the header template — John Sundell's compact block.
+# (company/-o is parsed for arg parity with the standard script but unused here.)
+header_template="/**
+*  %s
+*  Copyright (c) %s %s
+*  MIT license, see LICENSE file for details
+*/"
 
 # Loop through each Swift file in the specified directory and subdirectories
 find "$directory" -type f -name "*.swift" | while read -r file; do
@@ -79,16 +70,33 @@ find "$directory" -type f -name "*.swift" | while read -r file; do
     continue
   fi
 
-  # Create the header with the current filename
-  filename=$(basename "$file")
-  header=$(printf "$header_template" "$filename" "$package" "$creator" "$year" "$company")
+  # Create the header (package, creator, year)
+  header=$(printf "$header_template" "$package" "$creator" "$year")
 
-  # Remove all consecutive lines at the beginning which start with "// ", contain only whitespace, or only "//"
+  # Remove the leading license comment, then prepend the fresh one. Strips the
+  # FIRST leading `/* ... */` block (the license — covers Plot/Ink `/**`,
+  # including inner "#40:" annotation lines) plus leading "// " / "//" line
+  # comments (Files' "//" license) and blank lines, up to the first real line.
+  # It deliberately does NOT strip "///" doc comments or a SECOND comment block
+  # (a `/**`-style doc): a `block_done` guard limits block stripping to the
+  # license only, and the "//" patterns exclude "///". This preserves the API
+  # doc comments that sit between the header and the first declaration —
+  # otherwise swift-format's AllPublicDeclarationsHaveDocumentation rule fails.
+  # Idempotent (running twice produces no diff).
   awk '
-  BEGIN { skip = 1 }
+  BEGIN { skip = 1; in_block = 0; block_done = 0 }
   {
-    if (skip && ($0 ~ /^\/\/ / || $0 ~ /^\/\/$/ || $0 ~ /^$/)) {
+    if (in_block) {
+      if ($0 ~ /\*\//) { in_block = 0 }
       next
+    }
+    if (skip) {
+      if (block_done == 0 && $0 ~ /^[[:space:]]*\/\*/) {
+        block_done = 1
+        if ($0 !~ /\*\//) { in_block = 1 }
+        next
+      }
+      if ($0 ~ /^\/\/ / || $0 ~ /^\/\/$/ || $0 ~ /^$/) { next }
     }
     skip = 0
     print
@@ -101,4 +109,4 @@ find "$directory" -type f -name "*.swift" | while read -r file; do
   rm temp_file
 done
 
-echo "Headers added or files skipped appropriately across all Swift files in the directory and subdirectories."
+echo "Sundell headers added or files skipped appropriately across all Swift files in the directory and subdirectories."

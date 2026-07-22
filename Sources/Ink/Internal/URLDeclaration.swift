@@ -1,13 +1,7 @@
 /**
 *  Ink
-*  Copyright (c) John Sundell 2019
+*  Copyright (c) John Sundell 2020
 *  MIT license, see LICENSE file for details
-*
-*  #40: swift-markdown resolves CommonMark reference links (`[text][name]` against a
-*  `[name]: url` definition) natively, so the body is handed to it intact. This retained
-*  pre-pass additionally collects the `[name]: url` definitions into a
-*  `NamedURLCollection` as a resolution *fallback* for the rare cases swift-markdown
-*  leaves a destination unresolved (see `InlineHTMLRenderer.resolve`).
 */
 
 internal enum URLDeclaration {

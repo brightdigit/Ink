@@ -1,12 +1,7 @@
 /**
 *  Ink
-*  Copyright (c) John Sundell 2019
+*  Copyright (c) John Sundell 2020
 *  MIT license, see LICENSE file for details
-*
-*  #40: renders swift-markdown inline nodes to the same HTML Ink's `FormattedText`
-*  emitter produced (`<em>`, `<strong>`, `<s>`, `<code>`, `<a>`, `<img>`, `<br>`),
-*  using Ink's `<`/`>`/`&`-only escaping. Reference-style links/images are resolved
-*  against the retained `NamedURLCollection` pre-pass.
 */
 
 import Markdown

@@ -1,11 +1,7 @@
 /**
 *  Ink
-*  Copyright (c) John Sundell 2019
+*  Copyright (c) John Sundell 2020
 *  MIT license, see LICENSE file for details
-*
-*  #40: HTML escaping that reproduces Ink's original `Character.escaped` rule (only
-*  `<`, `>`, and `&` are escaped; `"` and `'` are left untouched), applied to the
-*  plain-text and code content swift-markdown hands back already-unescaped.
 */
 
 internal enum HTMLEscaping {

@@ -1,13 +1,7 @@
 /**
 *  Ink
-*  Copyright (c) John Sundell 2019
+*  Copyright (c) John Sundell 2020
 *  MIT license, see LICENSE file for details
-*
-*  #40: swift-markdown front end. This visitor walks swift-markdown's `Document`
-*  AST and constructs Ink's retained node IR (`Blockquote`, `CodeBlock`, `Heading`,
-*  …). The IR is then rendered to HTML by Ink's existing emitter, which applies the
-*  registered modifiers via the unchanged `(html, rawString)` plumbing. swift-markdown
-*  replaces only Ink's hand-written `Reader`; emission and the modifier contract are reused.
 */
 
 import Markdown
