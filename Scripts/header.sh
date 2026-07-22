@@ -73,26 +73,32 @@ find "$directory" -type f -name "*.swift" | while read -r file; do
   # Create the header (package, creator, year)
   header=$(printf "$header_template" "$package" "$creator" "$year")
 
-  # Remove the leading license comment, then prepend the fresh one. Strips a
-  # leading `/* ... */` block, leading "//" line comments, and blank lines up
-  # to the first real line — so this converts both the existing `/**` forks
-  # (Plot/Ink, including inner "#40:" annotation lines) and Files' "//" block,
-  # and is idempotent (running twice produces no diff).
+  # Remove the leading license comment, then prepend the fresh one. Strips the
+  # FIRST leading `/* ... */` block (the license — covers Plot/Ink `/**`,
+  # including inner "#40:" annotation lines) plus leading "// " / "//" line
+  # comments (Files' "//" license) and blank lines, up to the first real line.
+  # It deliberately does NOT strip "///" doc comments or a SECOND comment block
+  # (a `/**`-style doc): a `block_done` guard limits block stripping to the
+  # license only, and the "//" patterns exclude "///". This preserves the API
+  # doc comments that sit between the header and the first declaration —
+  # otherwise swift-format's AllPublicDeclarationsHaveDocumentation rule fails.
+  # Idempotent (running twice produces no diff).
   awk '
-  BEGIN { in_block = 0; done = 0 }
+  BEGIN { skip = 1; in_block = 0; block_done = 0 }
   {
-    if (done) { print; next }
     if (in_block) {
       if ($0 ~ /\*\//) { in_block = 0 }
       next
     }
-    if ($0 ~ /^[[:space:]]*\/\*/) {
-      if ($0 !~ /\*\//) { in_block = 1 }
-      next
+    if (skip) {
+      if (block_done == 0 && $0 ~ /^[[:space:]]*\/\*/) {
+        block_done = 1
+        if ($0 !~ /\*\//) { in_block = 1 }
+        next
+      }
+      if ($0 ~ /^\/\/ / || $0 ~ /^\/\/$/ || $0 ~ /^$/) { next }
     }
-    if ($0 ~ /^\/\//) { next }
-    if ($0 ~ /^[[:space:]]*$/) { next }
-    done = 1
+    skip = 0
     print
   }' "$file" > temp_file
 
