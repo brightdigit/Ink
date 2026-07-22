@@ -4,6 +4,15 @@
 *  MIT license, see LICENSE file for details
 */
 
+///
+/// Modifiers can be attached to a `MarkdownParser` and are used
+/// to customize Ink's parsing process. Each modifier is associated
+/// with a given `Target`, which determines which type of Markdown
+/// fragments that it is capable of modifying.
+///
+/// You can use a `Modifier` to adjust the HTML that was generated
+/// for a given fragment, or to inject completely custom HTML based
+/// on the fragment's raw Markdown representation.
 public struct Modifier: Sendable {
   /// The type of input that each modifier is given, which both
   /// contains the HTML that was generated for a fragment, and
