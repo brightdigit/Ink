@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Sundell-fork variant of Scripts/header.sh.
+#
+# Same skeleton as the standard BrightDigit header.sh (arg parsing, find loop,
+# Generated/ + swift-format-ignore skips, idempotent prepend) — the only
+# difference is the header TEXT: this emits John Sundell's compact `/** */`
+# block instead of the BrightDigit MIT block, so his attribution is preserved.
+#
+# Used ONLY by the three Sundell forks (Plot / Files / Ink). Invoke with the
+# original author as creator and each repo's latest copyright year, e.g.:
+#   ./Scripts/header.sh -d Sources -c "John Sundell" -o "John Sundell" -p "Plot"  -y 2021
+#   ./Scripts/header.sh -d Sources -c "John Sundell" -o "John Sundell" -p "Ink"   -y 2020
+#   ./Scripts/header.sh -d Sources -c "John Sundell" -o "John Sundell" -p "Files" -y 2019
+
 # Function to print usage
 usage() {
   echo "Usage: $0 -d directory -c creator -o company -p package [-y year]"
@@ -34,66 +47,13 @@ if [ -z "$directory" ] || [ -z "$creator" ] || [ -z "$company" ] || [ -z "$packa
   usage
 fi
 
-# Define the header template
-header_template="//
-//  %s
-//  %s
-//
-//  Created by %s.
-//  Copyright © %s %s.
-//
-//  Permission is hereby granted, free of charge, to any person
-//  obtaining a copy of this software and associated documentation
-//  files (the \"Software\"), to deal in the Software without
-//  restriction, including without limitation the rights to use,
-//  copy, modify, merge, publish, distribute, sublicense, and/or
-//  sell copies of the Software, and to permit persons to whom the
-//  Software is furnished to do so, subject to the following
-//  conditions:
-//
-//  The above copyright notice and this permission notice shall be
-//  included in all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,
-//  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-//  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-//  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-//  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-//  OTHER DEALINGS IN THE SOFTWARE.
-//"
-
-# Fallback copyright year, used only when a file's own header carries no parseable year.
-fork_year="2017-2019"
-
-# The original John Sundell upstream header — a /** block with the full MIT license text
-# inline (leading-space prefix), reproduced verbatim from upstream. This single template is
-# emitted for every Sundell-attributed file in the fork (consistent across Plot/Ink/Files).
-# Args: %s = package name, %s = copyright year.
-sundell_header_template="/**
- *  %s
- *
- *  Copyright (c) %s John Sundell. Licensed under the MIT license, as follows:
- *
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the \"Software\"), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
- *  furnished to do so, subject to the following conditions:
- *
- *  The above copyright notice and this permission notice shall be included in all
- *  copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
- */"
+# Define the header template — John Sundell's compact block.
+# (company/-o is parsed for arg parity with the standard script but unused here.)
+header_template="/**
+*  %s
+*  Copyright (c) %s %s
+*  MIT license, see LICENSE file for details
+*/"
 
 # Loop through each Swift file in the specified directory and subdirectories
 find "$directory" -type f -name "*.swift" | while read -r file; do
@@ -110,56 +70,29 @@ find "$directory" -type f -name "*.swift" | while read -r file; do
     continue
   fi
 
-  # This is a fork of John Sundell's package. The MIT license requires the original
-  # author's copyright notice to be preserved, so files carrying a Sundell copyright are
-  # given the package's ORIGINAL upstream header (not the BrightDigit template). BrightDigit
-  # fork credit lives in the NOTICE and README instead. This emit is idempotent: an
-  # already-correct header re-renders byte-identically.
-  if head -n 25 "$file" | grep -qi "Sundell"; then
-    # Preserve the file's existing copyright year (Sundell's headers vary per file); fall
-    # back to the package's original year only if none can be parsed.
-    file_year=$(head -n 25 "$file" | grep -iE "Copyright .*John Sundell" \
-      | grep -oE "[0-9]{4}(-[0-9]{4})?" | head -n 1)
-    [ -n "$file_year" ] || file_year="$fork_year"
+  # Create the header (package, creator, year)
+  header=$(printf "$header_template" "$package" "$creator" "$year")
 
-    printf "$sundell_header_template" "$package" "$file_year" > temp_header
-
-    # Strip a leading comment block — either consecutive "//" lines or a single "/* ... */"
-    # block — plus following blank lines, so re-emitting never stacks headers.
-    awk '
-    BEGIN { skip = 1; inblock = 0 }
-    {
-      if (skip && NR == 1 && $0 ~ /^\/\*/) { inblock = 1 }
-      if (skip && inblock) {
-        if ($0 ~ /\*\//) { inblock = 0 }
-        next
-      }
-      if (skip && ($0 ~ /^\/\/ / || $0 ~ /^\/\/$/ || $0 ~ /^$/)) { next }
-      skip = 0
-      print
-    }' "$file" > temp_file
-
-    # temp_header has no trailing newline (printf), so the first echo terminates the
-    # closing "*/" line and the second echo emits the single blank line before the code,
-    # matching the upstream header/body separation.
-    (cat temp_header; echo; echo; cat temp_file) > "$file"
-    rm -f temp_header temp_file
-    echo "Applied upstream Sundell header to $file (year ${file_year})."
-    continue
-  fi
-
-  # Create the header with the current filename
-  filename=$(basename "$file")
-  header=$(printf "$header_template" "$filename" "$package" "$creator" "$year" "$company")
-
-  # Remove all consecutive lines at the beginning which start with "// ", contain only whitespace, or only "//"
+  # Remove the leading license comment, then prepend the fresh one. Strips a
+  # leading `/* ... */` block, leading "//" line comments, and blank lines up
+  # to the first real line — so this converts both the existing `/**` forks
+  # (Plot/Ink, including inner "#40:" annotation lines) and Files' "//" block,
+  # and is idempotent (running twice produces no diff).
   awk '
-  BEGIN { skip = 1 }
+  BEGIN { in_block = 0; done = 0 }
   {
-    if (skip && ($0 ~ /^\/\/ / || $0 ~ /^\/\/$/ || $0 ~ /^$/)) {
+    if (done) { print; next }
+    if (in_block) {
+      if ($0 ~ /\*\//) { in_block = 0 }
       next
     }
-    skip = 0
+    if ($0 ~ /^[[:space:]]*\/\*/) {
+      if ($0 !~ /\*\//) { in_block = 1 }
+      next
+    }
+    if ($0 ~ /^\/\//) { next }
+    if ($0 ~ /^[[:space:]]*$/) { next }
+    done = 1
     print
   }' "$file" > temp_file
 
@@ -170,4 +103,4 @@ find "$directory" -type f -name "*.swift" | while read -r file; do
   rm temp_file
 done
 
-echo "Headers added or files skipped appropriately across all Swift files in the directory and subdirectories."
+echo "Sundell headers added or files skipped appropriately across all Swift files in the directory and subdirectories."
