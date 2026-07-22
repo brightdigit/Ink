@@ -2,10 +2,6 @@
 *  Ink
 *  Copyright (c) John Sundell 2019
 *  MIT license, see LICENSE file for details
-*
-*  #40: convert a swift-markdown `SourceLocation` (1-based line, 1-based UTF-8 byte
-*  column) into a `String.Index` so a node's verbatim source slice can be reconstructed
-*  for the modifier `rawString` contract.
 */
 
 extension String {
