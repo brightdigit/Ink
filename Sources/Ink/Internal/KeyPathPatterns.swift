@@ -4,6 +4,6 @@
 *  MIT license, see LICENSE file for details
 */
 
-internal protocol Modifiable {
-    var modifierTarget: Modifier.Target { get }
+internal func ~=<T>(rhs: KeyPath<T, Bool>, lhs: T) -> Bool {
+    lhs[keyPath: rhs]
 }
