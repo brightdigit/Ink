@@ -64,26 +64,15 @@ header_template="//
 //  OTHER DEALINGS IN THE SOFTWARE.
 //"
 
-# Fallback copyright year for this fork's upstream author, used only when a file's own
-# header carries no parseable year. Plot/Ink originated in 2019; Files in 2017.
-if [ "$package" = "Files" ]; then
-  fork_year="2017-2019"
-else
-  fork_year="2019"
-fi
+# Fallback copyright year, used only when a file's own header carries no parseable year.
+fork_year="2017-2019"
 
-# Upstream header for JohnSundell/Plot and JohnSundell/Ink — the compact /** block,
-# reproduced verbatim from upstream. Args: %s = package name, %s = copyright year.
-fork_header_template="/**
-*  %s
-*  Copyright (c) John Sundell %s
-*  MIT license, see LICENSE file for details
-*/"
-
-# Upstream header for JohnSundell/Files — a /** block with the full MIT license text
-# inline (leading-space prefix), reproduced verbatim from upstream. Arg: %s = year range.
-files_header_template="/**
- *  Files
+# The original John Sundell upstream header — a /** block with the full MIT license text
+# inline (leading-space prefix), reproduced verbatim from upstream. This single template is
+# emitted for every Sundell-attributed file in the fork (consistent across Plot/Ink/Files).
+# Args: %s = package name, %s = copyright year.
+sundell_header_template="/**
+ *  %s
  *
  *  Copyright (c) %s John Sundell. Licensed under the MIT license, as follows:
  *
@@ -133,13 +122,7 @@ find "$directory" -type f -name "*.swift" | while read -r file; do
       | grep -oE "[0-9]{4}(-[0-9]{4})?" | head -n 1)
     [ -n "$file_year" ] || file_year="$fork_year"
 
-    if [ "$package" = "Files" ]; then
-      # Upstream JohnSundell/Files uses a /** block with the full MIT license text inline.
-      printf "$files_header_template" "$file_year" > temp_header
-    else
-      # Upstream JohnSundell/Plot and /Ink use a compact /** block.
-      printf "$fork_header_template" "$package" "$file_year" > temp_header
-    fi
+    printf "$sundell_header_template" "$package" "$file_year" > temp_header
 
     # Strip a leading comment block — either consecutive "//" lines or a single "/* ... */"
     # block — plus following blank lines, so re-emitting never stacks headers.
