@@ -1,25 +1,23 @@
 /**
 *  Ink
-*  Copyright (c) John Sundell 2019
+*  Copyright (c) John Sundell 2020
 *  MIT license, see LICENSE file for details
 */
 
-internal struct Paragraph: Fragment {
-    var modifierTarget: Modifier.Target { .paragraphs }
+internal struct Paragraph: Modifiable, HTMLConvertible {
+  internal var modifierTarget: Modifier.Target { .paragraphs }
 
-    private var text: FormattedText
+  /// Pre-rendered inline HTML of the paragraph (#40).
+  private var renderedBody: String
 
-    static func read(using reader: inout Reader) -> Paragraph {
-        return Paragraph(text: .read(using: &reader))
-    }
+  internal init(renderedBody: String) {
+    self.renderedBody = renderedBody
+  }
 
-    func html(usingURLs urls: NamedURLCollection,
-              modifiers: ModifierCollection) -> String {
-        let body = text.html(usingURLs: urls, modifiers: modifiers)
-        return "<p>\(body)</p>"
-    }
-
-    func plainText() -> String {
-        text.plainText()
-    }
+  internal func html(
+    usingURLs urls: NamedURLCollection,
+    modifiers: ModifierCollection
+  ) -> String {
+    "<p>\(renderedBody)</p>"
+  }
 }
